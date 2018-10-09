@@ -59,7 +59,6 @@ class Bedframe():
         front = (rear[0] + d * cos(theta), rear[1] + d * sin(theta))
         return rear, front
 
-
     @property
     def CoG(self):
         '''Center of Gravity of the main part of the bedframe'''
@@ -74,9 +73,6 @@ class Bedframe():
         return 'Bedframe of length {l}, at {x}{y} and angle {angle}'.format(l = self.l, x = self.x, y = self.y, angle = self.angle)
     def __repr__(self):
         return self.__str__()
-
-
-
 
 if __name__ == '__main__':
     print('starting murphy')
