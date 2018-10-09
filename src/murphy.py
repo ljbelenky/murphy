@@ -1,4 +1,4 @@
-from math import cos, sin
+from math import cos, sin, radians
 pi = 3.141592653
 
 def rad(degrees):
@@ -45,9 +45,27 @@ class Bedframe():
         '''Angle in degrees, 0 is deployed, 90 is stowed'''
         self.angle = 0
 
-        @property
-        def foot(self):
-            lower_foot = (self.x + self.l*cos(rad(self.angle)), self.y + self.l*sin(rad(self.angle)))
+    @property
+    def foot(self):
+        l, t, theta = self.l, self.t, radians(self.angle)
+        lower = (self.x + l*cos(theta), self.y + l*sin(theta))
+        upper = (lower[0] - t*sin(theta), lower[1] + t*cos(theta)) 
+        return (lower, upper)
+
+    @property
+    def head(self):
+        h, d, theta = self.h_headboard, self.depth_of_headboard, radians(self.angle)
+        rear = (self.x - h * sin(theta), self.y - h * cos(theta))
+        front = (rear[0] + d * cos(theta), rear[1] + d * sin(theta))
+        return rear, front
+
+
+    @property
+    def CoG(self):
+        '''Center of Gravity of the main part of the bedframe'''
+        X = (self.x + self.foot[1][0])/2
+        Y = (self.y + self.foot[1][1])/2
+        return X, Y
 
     def floor_opening(self, angle):
         '''if bedframe is fully above or fully below floor, opening is zero'''
@@ -61,4 +79,5 @@ class Bedframe():
 
 
 if __name__ == '__main__':
+    print('starting murphy')
     bedframe = Bedframe(10, 72, 24, 10)
