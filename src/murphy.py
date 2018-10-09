@@ -1,5 +1,5 @@
 from math import cos, sin, radians
-pi = 3.141592653
+import matplotlib.pyplot as plt
 
 def rad(degrees):
     return pi*degrees/180
@@ -30,6 +30,32 @@ class Murphy():
         print('The resolve positions method has not been defined')
         self.status = True
 
+    def plot(self):
+        ax = plt.figure().add_subplot(111)
+        ax.set_aspect('equal')
+        ax = self.bedframe.plot(ax)
+        ax = self.A.plot(ax)
+        plt.show()
+
+class Link():
+    def __init__(self, x, y, length, width, angle):
+        self.x = x
+        self.y = y
+        self.length = length
+        self.width = width
+        self.angle = angle
+
+    @property
+    def distal(self):
+        x, y, l, theta = self.x, self.y, self.length, radians(self.angle)
+        X = self.x + l * cos(theta)
+        Y = self.y + l * sin(theta) 
+        return X,Y
+
+    def plot(self, ax):
+        ax.plot([self.x, self.distal[0]], [self.y, self.distal[1]])
+        return ax
+
     
 class Bedframe():
     ''' all measurements in inches'''
@@ -55,9 +81,16 @@ class Bedframe():
     @property
     def head(self):
         h, d, theta = self.h_headboard, self.depth_of_headboard, radians(self.angle)
-        rear = (self.x - h * sin(theta), self.y - h * cos(theta))
+        rear = (self.x - h * sin(theta), self.y + h * cos(theta))
         front = (rear[0] + d * cos(theta), rear[1] + d * sin(theta))
         return rear, front
+
+    @property
+    def pillow(self):
+        h, d, t, theta = self.h_headboard, self.depth_of_headboard, self.t, radians(self.angle)
+        x = self.head[1][0] + (h-t) * sin(theta)
+        y = self.head[1][1] - (h-t) * cos(theta)
+        return x,y
 
     @property
     def CoG(self):
@@ -66,14 +99,51 @@ class Bedframe():
         Y = (self.y + self.foot[1][1])/2
         return X, Y
 
+    def verify(self):
+        l, d, theta = self.l, self.depth_of_headboard, radians(self.angle)
+        a = round(self.pillow[0] + (l-d) * cos(theta),3)
+        a_prime = round(self.foot[1][0],3)
+        assert a == a_prime, '{a}, {a_prime}'.format(a=a, a_prime=a_prime)
+
+        b = round(self.pillow[1] + (l-d) * sin(theta),3)
+        b_prime = round(self.foot[1][1],3)
+        assert b == b_prime, '{b}, {b_prime}'.format(b=b, b_prime = b_prime)
+
     def floor_opening(self, angle):
         '''if bedframe is fully above or fully below floor, opening is zero'''
+
+    @property
+    def score(self):
+        '''Sum of all scores for this object'''
+
 
     def __str__(self):
         return 'Bedframe of length {l}, at {x}{y} and angle {angle}'.format(l = self.l, x = self.x, y = self.y, angle = self.angle)
     def __repr__(self):
         return self.__str__()
 
+    def plot(self, ax):
+        '''code to plot bedframe in matplotlib'''
+        xs = [self.x, self.foot[0][0], self.foot[1][0], self.pillow[0], self.head[1][0], self.head[0][0], self.x]
+        ys = [self.y, self.foot[0][1], self.foot[1][1], self.pillow[1], self.head[1][1], self.head[0][1], self.y]
+        ax.plot(xs, ys)
+        ax.scatter(self.CoG[0], self.CoG[1])
+        return ax
+
+    def render(self):
+        '''creates POV-Ray render instructions'''
 if __name__ == '__main__':
     print('starting murphy')
     bedframe = Bedframe(10, 72, 24, 10)
+    A_link = Link(0,5,10,6,45)
+
+    B_link = C_link = None
+
+    assembly = Murphy(bedframe, A_link, B_link, C_link, 18, 44)
+
+    for angle in range(0,91, 10):
+        assembly.bedframe.angle = angle
+        print(angle)
+        assembly.plot()
+
+    
