@@ -35,6 +35,7 @@ class Murphy():
         ax.set_aspect('equal')
         ax = self.bedframe.plot(ax)
         ax = self.A.plot(ax)
+        ax = self.B.plot(ax)
         plt.show()
 
 class Link():
@@ -52,8 +53,30 @@ class Link():
         Y = self.y + l * sin(theta) 
         return X,Y
 
+    @property
+    def edge0(self):
+        x,y,w, theta = self.x, self.y, self.width/2, radians(self.angle)
+        X,Y = self.distal
+        x0 = x - w*sin(theta)
+        x1 = X - w*sin(theta)
+        y0 = y + w*cos(theta)
+        y1 = Y + w*cos(theta)
+        return ((x0, y0), (x1, y1))
+
+    @property
+    def edge1(self):
+        x,y,w, theta = self.x, self.y, self.width/2, radians(self.angle)
+        X,Y = self.distal
+        x0 = x + w*sin(theta)
+        x1 = X + w*sin(theta)
+        y0 = y - w*cos(theta)
+        y1 = Y - w*cos(theta)
+        return ((x0, y0), (x1, y1))   
+
     def plot(self, ax):
         ax.plot([self.x, self.distal[0]], [self.y, self.distal[1]])
+        for edge in [self.edge0, self.edge1]:
+            ax.plot([edge[0][0],edge[1][0]], [edge[0][1], edge[1][1]])
         return ax
 
     
@@ -135,13 +158,14 @@ class Bedframe():
 if __name__ == '__main__':
     print('starting murphy')
     bedframe = Bedframe(10, 72, 24, 10)
-    A_link = Link(0,5,10,6,45)
+    A_link = Link(0,5,12,4,45)
+    B_link = Link(2, -10, 30, 4, 20)
 
-    B_link = C_link = None
+    C_link = None
 
     assembly = Murphy(bedframe, A_link, B_link, C_link, 18, 44)
 
-    for angle in range(0,91, 10):
+    for angle in range(0,91, 30):
         assembly.bedframe.angle = angle
         print(angle)
         assembly.plot()
