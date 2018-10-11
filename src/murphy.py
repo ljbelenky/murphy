@@ -95,6 +95,7 @@ class Link():
             a1 = 0
 
         if self.y * self.distal[1] < 0:
+            # ERROR HERE
             a2 = self.x + abs(self.y)/tan(radians(self.angle)) + r/cos(radians(self.angle))
 
         else:
