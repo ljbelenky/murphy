@@ -97,14 +97,19 @@ class Link():
             a1 = self.distal[0] + ((r**2)-self.distal[1]**2)**0.5
         else:
             a1 = 0
-
         if y * Y < 0:
             a2 = x - y*(X-x)/(Y-y) + abs(w/sin(theta))
         else: a2 = 0
 
         return max(a0,a1,a2)
     
-    def plot(self, ax):
+    def plot(self, ax = None):
+        plot_here = False
+        if not ax:
+            ax = plt.figure().add_subplot(111)
+            ax.set_aspect('equal')
+            plot_here = True
+            
         r = self.width/2
         ax.plot([self.x, self.distal[0]], [self.y, self.distal[1]], c = self.color, linestyle = 'dashed')
         for edge in [self.edge0, self.edge1]:
@@ -119,6 +124,7 @@ class Link():
         alpha = .1, c = self.color)
 
         ax.scatter(self.floor_opening, 0, c=self.color)
+        if plot_here: plt.show()
         return ax
 
     
@@ -181,18 +187,23 @@ class Bedframe():
     def score(self):
         '''Sum of all scores for this object'''
 
-
     def __str__(self):
         return 'Bedframe of length {l}, at {x}{y} and angle {angle}'.format(l = self.l, x = self.x, y = self.y, angle = self.angle)
     def __repr__(self):
         return self.__str__()
 
-    def plot(self, ax):
+    def plot(self, ax = None):
+        plot_here = False
+        if not ax:
+            ax = plt.figure().add_subplot(111)
+            ax.set_aspect('equal')
+            plot_here = True
         '''code to plot bedframe in matplotlib'''
         xs = [self.x, self.foot[0][0], self.foot[1][0], self.pillow[0], self.head[1][0], self.head[0][0], self.x]
         ys = [self.y, self.foot[0][1], self.foot[1][1], self.pillow[1], self.head[1][1], self.head[0][1], self.y]
         ax.plot(xs, ys)
         ax.scatter(self.CoG[0], self.CoG[1], marker = 'X')
+        if plot_here: plt.show()
         return ax
 
     def render(self):
