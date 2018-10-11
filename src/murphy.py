@@ -1,5 +1,6 @@
-from math import cos, sin, radians
+from math import cos, sin, tan, radians
 import matplotlib.pyplot as plt
+import numpy as np
 
 def rad(degrees):
     return pi*degrees/180
@@ -33,18 +34,18 @@ class Murphy():
     def plot(self):
         ax = plt.figure().add_subplot(111)
         ax.set_aspect('equal')
-        ax = self.bedframe.plot(ax)
-        ax = self.A.plot(ax)
-        ax = self.B.plot(ax)
+        for component in [self.bedframe, self.A, self.B, self.C]:
+            ax = component.plot(ax)
         plt.show()
 
 class Link():
-    def __init__(self, x, y, length, width, angle):
+    def __init__(self, x, y, length, width, angle, color):
         self.x = x
         self.y = y
         self.length = length
         self.width = width
         self.angle = angle
+        self.color = color
 
     @property
     def distal(self):
@@ -73,10 +74,48 @@ class Link():
         y1 = Y - w*cos(theta)
         return ((x0, y0), (x1, y1))   
 
+    @property
+    def extents(self):
+        left = min(self.x, self.distal[0]) - self.width/2
+        right = max(self.x, self.distal[0]) + self.width/2
+        top = max(self.y, self.distal[1]) + self.width/2
+        bottom = min(self.y, self.distal[1]) - self.width/2
+        return {'left':left, 'right':right, 'top':top, 'bottom':bottom}
+
+    @property
+    def floor_opening(self):
+        r = self.width/2
+        if abs(self.y) < r:
+            a0 = self.x + ((r**2)-(self.y)**2)**0.5
+        else:
+            a0 = 0
+        if abs(self.distal[1]) < r:
+            a1 = self.distal[0] + ((r**2)-self.distal[1]**2)**0.5
+        else:
+            a1 = 0
+
+        if self.y * self.distal[1] < 0:
+            a2 = self.x + abs(self.y)/tan(radians(self.angle)) + r/cos(radians(self.angle))
+
+        else:
+            a2 = a3 = 0
+        return max(a0, a1, a2)
+
     def plot(self, ax):
-        ax.plot([self.x, self.distal[0]], [self.y, self.distal[1]])
+        r = self.width/2
+        ax.plot([self.x, self.distal[0]], [self.y, self.distal[1]], c = self.color)
         for edge in [self.edge0, self.edge1]:
-            ax.plot([edge[0][0],edge[1][0]], [edge[0][1], edge[1][1]])
+            ax.plot([edge[0][0],edge[1][0]], [edge[0][1], edge[1][1]], c = self.color)
+
+        for x,y in zip([self.x,self.distal[0]], [self.y,self.distal[1]]):
+            phi = np.radians(np.linspace(0,360,37))
+            ax.plot(r*np.cos(phi)+x, r*np.sin(phi)+y, c = self.color )
+
+        ax.plot([self.extents['left'], self.extents['right'], self.extents['right'], self.extents['left'], self.extents['left']],
+        [self.extents['bottom'], self.extents['bottom'], self.extents['top'], self.extents['top'], self.extents['bottom']], 
+        alpha = .1, c = self.color)
+
+        ax.scatter(self.floor_opening, 0, c=self.color)
         return ax
 
     
@@ -158,10 +197,9 @@ class Bedframe():
 if __name__ == '__main__':
     print('starting murphy')
     bedframe = Bedframe(10, 72, 24, 10)
-    A_link = Link(0,5,12,4,45)
-    B_link = Link(2, -10, 30, 4, 20)
-
-    C_link = None
+    A_link = Link(0,5,12,4,45, 'r')
+    B_link = Link(2, -10, 30, 4, 20, 'g')
+    C_link = Link(B_link.distal[0], B_link.distal[1], 20, 3, 10, 'b')
 
     assembly = Murphy(bedframe, A_link, B_link, C_link, 18, 44)
 
