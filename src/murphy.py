@@ -4,29 +4,15 @@ import numpy as np
 
 class Murphy():
     def __init__(self, bedframe, A_link, B_link, C_link, desired_deployed_height, desired_stowed_height, type = 'Beta', ):
-
         ''' Basic structure'''
         self.bedframe = bedframe
         self.A = A_link
         self.B = B_link
         self.C = C_link
-        ''' Alpha type has A and B links at headboard, Beta type has A and B links at foot of bed'''
-        self.type = type
 
         '''Design Goals'''
         self.desired_deployed_height = desired_deployed_height
         self.desired_stowed_height = desired_stowed_height
-
-        '''Status is true when positions of all components are fully defined'''
-        self.status = False
-
-        '''Score to optimize on, sum of scores of components. Zero is ideal'''
-        self.score = None
-
-    def resolve_positions(self, angle):
-        '''determine position of all components given current design and given angle'''
-        print('The resolve positions method has not been defined')
-        self.status = True
 
     def plot(self):
         ax = plt.figure().add_subplot(111)
@@ -37,39 +23,32 @@ class Murphy():
 
 class Link():
     def __init__(self, x, y, length, width, angle, color):
-        self.x = x
-        self.y = y
-        self.length = length
-        self.width = width
+        self.x, self.y = x, y
+        self.length, self.width = length, width
         self.angle = angle
         self.color = color
 
     @property
     def distal(self):
         x, y, l, theta = self.x, self.y, self.length, radians(self.angle)
-        X = self.x + l * cos(theta)
-        Y = self.y + l * sin(theta) 
+        X = x + l * cos(theta)
+        Y = y + l * sin(theta) 
         return X,Y
 
     @property
-    def edge0(self):
+    def edges(self):
         x,y,w, theta = self.x, self.y, self.width/2, radians(self.angle)
         X,Y = self.distal
         x0 = x - w*sin(theta)
         x1 = X - w*sin(theta)
         y0 = y + w*cos(theta)
         y1 = Y + w*cos(theta)
-        return ((x0, y0), (x1, y1))
 
-    @property
-    def edge1(self):
-        x,y,w, theta = self.x, self.y, self.width/2, radians(self.angle)
-        X,Y = self.distal
-        x0 = x + w*sin(theta)
-        x1 = X + w*sin(theta)
-        y0 = y - w*cos(theta)
-        y1 = Y - w*cos(theta)
-        return ((x0, y0), (x1, y1))   
+        X0 = x + w*sin(theta)
+        X1 = X + w*sin(theta)
+        Y0 = y - w*cos(theta)
+        Y1 = Y - w*cos(theta)
+        return [((x0, y0), (x1, y1)), ((X0, Y0), (X1, Y1))]
 
     @property
     def extents(self):
@@ -109,7 +88,7 @@ class Link():
             
         r = self.width/2
         ax.plot([self.x, self.distal[0]], [self.y, self.distal[1]], c = self.color, linestyle = 'dashed')
-        for edge in [self.edge0, self.edge1]:
+        for edge in self.edges:
             ax.plot([edge[0][0],edge[1][0]], [edge[0][1], edge[1][1]], c = self.color)
 
         for x,y in zip([self.x,self.distal[0]], [self.y,self.distal[1]]):
