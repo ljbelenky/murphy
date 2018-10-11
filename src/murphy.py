@@ -2,9 +2,6 @@ from math import cos, sin, tan, radians
 import matplotlib.pyplot as plt
 import numpy as np
 
-def rad(degrees):
-    return pi*degrees/180
-
 class Murphy():
     def __init__(self, bedframe, A_link, B_link, C_link, desired_deployed_height, desired_stowed_height, type = 'Beta', ):
 
@@ -130,7 +127,7 @@ class Link():
     
 class Bedframe():
     ''' all measurements in inches'''
-    def __init__(self, thickness, length, height_of_headboard, depth_of_headboard, angle = 0):
+    def __init__(self, x,y,thickness, length, height_of_headboard, depth_of_headboard, angle = 0):
         '''Design elements'''
         self.t = thickness
         self.l = length
@@ -138,7 +135,7 @@ class Bedframe():
         self.depth_of_headboard = depth_of_headboard
 
         '''Current Position'''
-        self.x, self.y = 0,0
+        self.x, self.y = x,y
         '''Angle in degrees, 0 is deployed, 90 is stowed'''
         self.angle = 0
 
@@ -180,12 +177,24 @@ class Bedframe():
         b_prime = round(self.foot[1][1],3)
         assert b == b_prime, '{b}, {b_prime}'.format(b=b, b_prime = b_prime)
 
-    def floor_opening(self, angle):
-        '''if bedframe is fully above or fully below floor, opening is zero'''
+    @property
+    def floor_opening(self):
+        x,y = self.x, self.y
+        X,Y =self.foot[0]     
+        if y > 0 and Y > 0: return 0
+        if Y <= 0: return X
+        return x - (y * (X-x)/(Y-y))
 
     @property
-    def score(self):
-        '''Sum of all scores for this object'''
+    def extents(self):
+        xs = [self.x, self.foot[0][0], self.foot[1][0], self.head[0][0], self.head[1][0], self.pillow[0]]
+        left = min(xs)
+        right = max(xs)
+
+        ys = [self.y, self.foot[0][1], self.foot[1][1], self.head[0][1], self.head[1][1], self.pillow[1]]
+        top = max(ys)
+        bottom = min(ys)
+        return {'left':left, 'top':top, 'right': right, 'bottom': bottom}
 
     def __str__(self):
         return 'Bedframe of length {l}, at {x}{y} and angle {angle}'.format(l = self.l, x = self.x, y = self.y, angle = self.angle)
@@ -193,6 +202,7 @@ class Bedframe():
         return self.__str__()
 
     def plot(self, ax = None):
+        color = 'k'
         plot_here = False
         if not ax:
             ax = plt.figure().add_subplot(111)
@@ -201,25 +211,26 @@ class Bedframe():
         '''code to plot bedframe in matplotlib'''
         xs = [self.x, self.foot[0][0], self.foot[1][0], self.pillow[0], self.head[1][0], self.head[0][0], self.x]
         ys = [self.y, self.foot[0][1], self.foot[1][1], self.pillow[1], self.head[1][1], self.head[0][1], self.y]
-        ax.plot(xs, ys)
-        ax.scatter(self.CoG[0], self.CoG[1], marker = 'X')
+        ax.plot(xs, ys, color = color)
+        ax.scatter(self.CoG[0], self.CoG[1], marker = 'X', color = color)
+        ax.scatter(self.floor_opening, 0, marker = 'o', color = color)
+
+        ax.plot([self.extents['left'], self.extents['right'], self.extents['right'], self.extents['left'], self.extents['left']],
+        [self.extents['bottom'], self.extents['bottom'], self.extents['top'], self.extents['top'], self.extents['bottom']], 
+        alpha = .1, color = color)
         if plot_here: plt.show()
         return ax
 
-    def render(self):
-        '''creates POV-Ray render instructions'''
 if __name__ == '__main__':
     print('starting murphy')
-    bedframe = Bedframe(10, 72, 24, 10)
+    bedframe = Bedframe(2,-4,10, 72, 24, 10)
     A_link = Link(0,5,12,4,45, 'r')
     B_link = Link(2, -10, 30, 4, 40, 'g')
     C_link = Link(B_link.distal[0], B_link.distal[1], 20, 3, -60, 'b')
 
     assembly = Murphy(bedframe, A_link, B_link, C_link, 18, 44)
 
-    for angle in range(0,91, 30):
+    for angle in range(0,91, 15):
         assembly.bedframe.angle = angle
         print(angle)
         assembly.plot()
-
-    
