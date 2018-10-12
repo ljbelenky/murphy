@@ -105,7 +105,6 @@ class Link():
 
     
 class Bedframe():
-    ''' all measurements in inches'''
     def __init__(self, x,y,thickness, length, height_of_headboard, depth_of_headboard, angle = 0):
         '''Design elements'''
         self.t = thickness
@@ -167,18 +166,11 @@ class Bedframe():
     @property
     def extents(self):
         xs = [self.x, self.foot[0][0], self.foot[1][0], self.head[0][0], self.head[1][0], self.pillow[0]]
-        left = min(xs)
-        right = max(xs)
+        left, right = min(xs), max(xs)
 
         ys = [self.y, self.foot[0][1], self.foot[1][1], self.head[0][1], self.head[1][1], self.pillow[1]]
-        top = max(ys)
-        bottom = min(ys)
+        top, bottom = max(ys), min(ys)
         return {'left':left, 'top':top, 'right': right, 'bottom': bottom}
-
-    def __str__(self):
-        return 'Bedframe of length {l}, at {x}{y} and angle {angle}'.format(l = self.l, x = self.x, y = self.y, angle = self.angle)
-    def __repr__(self):
-        return self.__str__()
 
     def plot(self, ax = None):
         color = 'k'
@@ -187,13 +179,11 @@ class Bedframe():
             ax = plt.figure().add_subplot(111)
             ax.set_aspect('equal')
             plot_here = True
-        '''code to plot bedframe in matplotlib'''
         xs = [self.x, self.foot[0][0], self.foot[1][0], self.pillow[0], self.head[1][0], self.head[0][0], self.x]
         ys = [self.y, self.foot[0][1], self.foot[1][1], self.pillow[1], self.head[1][1], self.head[0][1], self.y]
         ax.plot(xs, ys, color = color)
         ax.scatter(self.CoG[0], self.CoG[1], marker = 'X', color = color)
         ax.scatter(self.floor_opening, 0, marker = 'o', color = color)
-
         ax.plot([self.extents['left'], self.extents['right'], self.extents['right'], self.extents['left'], self.extents['left']],
         [self.extents['bottom'], self.extents['bottom'], self.extents['top'], self.extents['top'], self.extents['bottom']], 
         alpha = .1, color = color)
