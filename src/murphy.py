@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 class Murphy():
+    learning_rate = -.1
+    threshold = .001
     def __init__(self, bedframe, A_link, B_link, C_link, desired_deployed_height, desired_stowed_height, type = 'Beta', ):
         ''' Basic structure'''
         self.bedframe = bedframe
@@ -25,6 +27,30 @@ class Murphy():
             ax = component.plot(ax)
         ax.set_title(round(self.ikea_error,2))
         plt.show()
+
+    def assemble(self):
+        ''' For a given structure and bed angle, adjust link angles and bed (x,y) to minimize ikea error.'''
+        # loop over the following variables, making small adjustments until ikea error is minimized (ideally zero):
+        # [bedframe.x, bedframe.y, A_link.angle, B_link.angle, C_link.angle]
+        # Note: it is necessary to reposition C_link (x,y) to B_link.distal after B_link.angle is adjusted.
+        # while True:
+        for i in range(10000):
+            for variable in ['A.angle', 'B.angle', 'C.angle', 'bedframe.x', 'bedframe.y']:
+                errors  = []
+                for step in ['+=0.5', '-=1']:
+                    exec('self.{variable} {step}'.format(variable = variable, step = step))
+                    self.C.x, self.C.y = self.B.distal
+                    errors.append(self.ikea_error)
+                partial_derivative = errors[0]-errors[1]
+                adjustment = self.learning_rate*partial_derivative + .5
+                exec('self.{variable} += {adjustment}'.format(variable = variable, adjustment = adjustment))
+            if i%1000==0:
+                self.plot()
+            if self.ikea_error < self.threshold: 
+                self.plot()
+                break
+
+
 
 class Link():
     def __init__(self, x, y, length, width, angle, color, attachment = None):
@@ -231,7 +257,8 @@ if __name__ == '__main__':
     C_link = Link(B_link.distal[0], B_link.distal[1], 20, 3, -60, 'b', (40,6))
 
     assembly = Murphy(bedframe, A_link, B_link, C_link, 18, 44)
+    assembly.bedframe.angle = 0
 
-    for angle in range(0,91, 15):
+    for angle in range(0,91,30):
         assembly.bedframe.angle = angle
-        assembly.plot()
+        assembly.assemble()
