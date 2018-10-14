@@ -1,4 +1,4 @@
-from math import cos, sin, tan, radians
+from math import cos, sin, tan, atan, radians
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -14,19 +14,40 @@ class Murphy():
         self.desired_deployed_height = desired_deployed_height
         self.desired_stowed_height = desired_stowed_height
 
+    @property
+    def ikea_error(self):
+        return sum([component.ikea_error for component in [A_link, B_link, C_link]])
+
     def plot(self):
         ax = plt.figure().add_subplot(111)
         ax.set_aspect('equal')
         for component in [self.bedframe, self.A, self.B, self.C]:
             ax = component.plot(ax)
+        ax.set_title(round(self.ikea_error,2))
         plt.show()
 
 class Link():
-    def __init__(self, x, y, length, width, angle, color):
+    def __init__(self, x, y, length, width, angle, color, attachment = None):
         self.x, self.y = x, y
         self.length, self.width = length, width
         self.angle = angle
         self.color = color
+        # Attachment point relative to the bedframe
+        if attachment:
+            self.attachment = {'x':attachment[0],'y':attachment[1]}
+        else: self.attachment = None
+
+    @property
+    def room_attachment(self):
+        # attachment point relative to the room
+        if self.attachment:
+            theta = radians(bedframe.angle)
+            l = ((self.attachment['x']**2)+(self.attachment['y']**2))**0.5
+            phi = atan(self.attachment['y']/self.attachment['x'])
+            x = bedframe.x + l*cos(theta + phi)
+            y = bedframe.y + l*sin(theta + phi)    
+            return {'x':x, 'y':y}
+        else: return None
 
     @property
     def distal(self):
@@ -78,7 +99,14 @@ class Link():
         else: a2 = 0
 
         return max(a0,a1,a2)
-    
+
+    @property
+    def ikea_error(self):
+        # Ikea error is the assembly error, or the distance from the distal point of a link to its intended attachment point
+        if self.attachment:
+            return ((self.distal[0]-self.room_attachment['x'])**2+(self.distal[1]-self.room_attachment['y'])**2)**0.5
+        else: return 0
+
     def plot(self, ax = None):
         plot_here = False
         if not ax:
@@ -87,7 +115,6 @@ class Link():
             plot_here = True
             
         r = self.width/2
-        ax.plot([self.x, self.distal[0]], [self.y, self.distal[1]], c = self.color, linestyle = 'dashed')
         for edge in self.edges:
             ax.plot([edge[0][0],edge[1][0]], [edge[0][1], edge[1][1]], c = self.color)
 
@@ -95,11 +122,21 @@ class Link():
             phi = np.radians(np.linspace(0,360,37))
             ax.plot(r*np.cos(phi)+x, r*np.sin(phi)+y, c = self.color )
 
+        # Extents Box
         ax.plot([self.extents['left'], self.extents['right'], self.extents['right'], self.extents['left'], self.extents['left']],
         [self.extents['bottom'], self.extents['bottom'], self.extents['top'], self.extents['top'], self.extents['bottom']], 
         alpha = .1, c = self.color)
 
+        # Floor Opening Point
         ax.scatter(self.floor_opening, 0, c=self.color)
+
+        # Attachment Point
+        print(self.room_attachment)
+        if self.attachment:
+            ax.scatter(**self.room_attachment, marker = 'x', c = self.color)
+            ax.plot([self.distal[0], self.room_attachment['x']], [self.distal[1], self.room_attachment['y']], c = self.color, linestyle = 'dashed')
+
+
         if plot_here: plt.show()
         return ax
 
@@ -188,10 +225,10 @@ class Bedframe():
         return ax
 
 if __name__ == '__main__':
-    bedframe = Bedframe(2,-4,10, 72, 24, 10)
-    A_link = Link(0,5,12,4,45, 'r')
+    bedframe = Bedframe(10,4,10, 72, 24, 10)
+    A_link = Link(0,5,12,4,45, 'r', (10,2))
     B_link = Link(2, -10, 30, 4, 40, 'g')
-    C_link = Link(B_link.distal[0], B_link.distal[1], 20, 3, -60, 'b')
+    C_link = Link(B_link.distal[0], B_link.distal[1], 20, 3, -60, 'b', (40,6))
 
     assembly = Murphy(bedframe, A_link, B_link, C_link, 18, 44)
 
