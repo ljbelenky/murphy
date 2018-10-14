@@ -103,7 +103,6 @@ class Link():
         if plot_here: plt.show()
         return ax
 
-    
 class Bedframe():
     def __init__(self, x,y,thickness, length, height_of_headboard, depth_of_headboard, angle = 0):
         '''Design elements'''
@@ -150,7 +149,6 @@ class Bedframe():
         a = round(self.pillow[0] + (l-d) * cos(theta),3)
         a_prime = round(self.foot[1][0],3)
         assert a == a_prime, '{a}, {a_prime}'.format(a=a, a_prime=a_prime)
-
         b = round(self.pillow[1] + (l-d) * sin(theta),3)
         b_prime = round(self.foot[1][1],3)
         assert b == b_prime, '{b}, {b_prime}'.format(b=b, b_prime = b_prime)
@@ -167,7 +165,6 @@ class Bedframe():
     def extents(self):
         xs = [self.x, self.foot[0][0], self.foot[1][0], self.head[0][0], self.head[1][0], self.pillow[0]]
         left, right = min(xs), max(xs)
-
         ys = [self.y, self.foot[0][1], self.foot[1][1], self.head[0][1], self.head[1][1], self.pillow[1]]
         top, bottom = max(ys), min(ys)
         return {'left':left, 'top':top, 'right': right, 'bottom': bottom}
@@ -191,7 +188,6 @@ class Bedframe():
         return ax
 
 if __name__ == '__main__':
-    print('starting murphy')
     bedframe = Bedframe(2,-4,10, 72, 24, 10)
     A_link = Link(0,5,12,4,45, 'r')
     B_link = Link(2, -10, 30, 4, 40, 'g')
@@ -201,5 +197,4 @@ if __name__ == '__main__':
 
     for angle in range(0,91, 15):
         assembly.bedframe.angle = angle
-        print(angle)
         assembly.plot()
