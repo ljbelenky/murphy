@@ -1,6 +1,7 @@
 from math import cos, sin, tan, atan, radians
 import matplotlib.pyplot as plt
 import numpy as np
+from copy import deepcopy
 
 class Murphy():
     learning_rate = -.1
@@ -16,9 +17,28 @@ class Murphy():
         self.desired_deployed_height = desired_deployed_height
         self.desired_stowed_height = desired_stowed_height
 
+        self.collected_solutions = {}
+
     @property
     def ikea_error(self):
+        '''The total difference between actual positions and intended positions for fixed, rigid components.'''
         return sum([component.ikea_error for component in [A_link, B_link, C_link]])
+
+    @property
+    def murphy_error(self):
+        '''murphy_error is the sum of all differences between current design and optimal design. Used to optimize fixed, positions and rigid components'''
+
+        # When deployed, the bed should be at desired height with the head of the bed close to the wall
+
+        # When stowed, the bed should be flat up against the wall with the foot of the bed below the window
+
+        # No part of the assembly should ever extend outside of the house
+
+        # when stowed and deployed, no part of the links should extend above/forward of the bedframe
+
+        # the floor opening should be minimized
+
+        # the center of gravity of the bedframe should be as low as possible
 
     def plot(self):
         ax = plt.figure().add_subplot(111)
@@ -28,7 +48,7 @@ class Murphy():
         ax.set_title(round(self.ikea_error,2))
         plt.show()
 
-    def assemble(self):
+    def assemble(self, plot_here = False):
         ''' For a given structure and bed angle, adjust link angles and bed (x,y) to minimize ikea error.'''
         # loop over the following variables, making small adjustments until ikea error is minimized (ideally zero):
         # [bedframe.x, bedframe.y, A_link.angle, B_link.angle, C_link.angle]
@@ -44,13 +64,10 @@ class Murphy():
                 partial_derivative = errors[0]-errors[1]
                 adjustment = self.learning_rate*partial_derivative + .5
                 exec('self.{variable} += {adjustment}'.format(variable = variable, adjustment = adjustment))
-            if i%1000==0:
+            if (i%5000==0) and plot_here:
                 self.plot()
-            if self.ikea_error < self.threshold: 
-                self.plot()
-                break
-
-
+        if plot_here: self.plot()
+        self.collected_solutions[self.bedframe.angle] = deepcopy(self)
 
 class Link():
     def __init__(self, x, y, length, width, angle, color, attachment = None):
@@ -127,11 +144,17 @@ class Link():
         return max(a0,a1,a2)
 
     @property
+    def CoG(self):
+        return (self.x+self.distal[0])/2, (self.y+self.distal[1])/2
+
+    @property
     def ikea_error(self):
-        # Ikea error is the assembly error, or the distance from the distal point of a link to its intended attachment point
+        '''Ikea error is the assembly error, or the distance from the distal point of a link to its intended attachment point,
+        plus the CoG of each component should be as low as possible.'''
         if self.attachment:
-            return ((self.distal[0]-self.room_attachment['x'])**2+(self.distal[1]-self.room_attachment['y'])**2)**0.5
-        else: return 0
+            fit_error = ((self.distal[0]-self.room_attachment['x'])**2+(self.distal[1]-self.room_attachment['y'])**2)
+        else: fit_error = 0 
+        return fit_error + self.CoG[1]*.1
 
     def plot(self, ax = None):
         plot_here = False
@@ -157,11 +180,9 @@ class Link():
         ax.scatter(self.floor_opening, 0, c=self.color)
 
         # Attachment Point
-        print(self.room_attachment)
         if self.attachment:
             ax.scatter(**self.room_attachment, marker = 'x', c = self.color)
             ax.plot([self.distal[0], self.room_attachment['x']], [self.distal[1], self.room_attachment['y']], c = self.color, linestyle = 'dashed')
-
 
         if plot_here: plt.show()
         return ax
@@ -251,14 +272,13 @@ class Bedframe():
         return ax
 
 if __name__ == '__main__':
-    bedframe = Bedframe(10,4,10, 72, 24, 10)
-    A_link = Link(0,5,12,4,45, 'r', (10,2))
-    B_link = Link(2, -10, 30, 4, 40, 'g')
-    C_link = Link(B_link.distal[0], B_link.distal[1], 20, 3, -60, 'b', (40,6))
 
+    bedframe = Bedframe(10,4,10, 72, 24, 10)
+    A_link = Link(0,5,12,4,0, 'r', (10,2))
+    B_link = Link(2, -10, 30, 4, 0, 'g')
+    C_link = Link(B_link.distal[0], B_link.distal[1], 20, 3, 0, 'b', (40,6))
     assembly = Murphy(bedframe, A_link, B_link, C_link, 18, 44)
-    assembly.bedframe.angle = 0
 
     for angle in range(0,91,30):
         assembly.bedframe.angle = angle
-        assembly.assemble()
+        assembly.assemble(plot_here=False)
