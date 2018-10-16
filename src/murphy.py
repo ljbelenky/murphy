@@ -3,42 +3,71 @@ import matplotlib.pyplot as plt
 import numpy as np
 from copy import deepcopy
 
+class MurphyBed():
+    '''The MurphyBed Class represents a collection of Murphy objects, all of the same design, solved over the full range of angles from deployed (0) to stowed (90)'''
+    def __init__(self, bed, desired_deployed_height, desired_stowed_height):
+        self.bed = bed
+        self.desired_deployed_height, desired_stowed_height = desired_deployed_height, desired_stowed_height
+        self.collected_solutions = {}
+
+    def solve_over_full_range(self, steps):
+        for angle in np.linspace(0,90, steps):
+            print('Solving at angle ', angle)
+            self.bed.bedframe.angle = angle
+            self.bed.assemble()
+            self.collected_solutions[angle] = deepcopy(self.bed)
+
+    @property
+    def murphy_error(self):
+        '''murphy_error is the sum of all differences between current design and optimal design. Used to optimize fixed, positions and rigid components. 
+        Calculation of Murphy Error requires collected_solutions for all angles between 0 and 90'''
+
+        errors = []
+        # When deployed, the bed should be at desired height
+        if self.bedframe.angle == 0:
+            errors.append(((self.bedframe.y + self.bedframe.t)-self.desired_deployed_height)**2)
+        else: errors.append(0)
+
+        # When deployed, the head of the bed should be close to the wall
+        if self.bedframe.angle == 0:
+            errors.append(self.bedframe.x**2)
+        else: errors.append(0)
+
+        # When stowed, the bed should be flat up against the wall
+        if self.bedframe.angle == 90:
+            errors.append()
+        else: errors.append(0)
+
+        # When stowed, the foot of the bed should be at desired height below the window
+        if self.bedframe.angle == 90:
+            errors.append()
+        else:
+            errors.append(0)
+
+        # No part of the assembly should ever extend outside of the house
+
+        # when stowed, no part of the links should extend above/forward of the bedframe
+
+        # when deployed, no part of the links should extend above/forward of the bedframe
+
+        # the floor opening should be minimized
+
+
 class Murphy():
+    '''The Murphy Object represents a bed assembly at a particular angle'''
     learning_rate = -.1
     threshold = .001
-    def __init__(self, bedframe, A_link, B_link, C_link, desired_deployed_height, desired_stowed_height, type = 'Beta', ):
+    def __init__(self, bedframe, A_link, B_link, C_link):
         ''' Basic structure'''
         self.bedframe = bedframe
         self.A = A_link
         self.B = B_link
         self.C = C_link
 
-        '''Design Goals'''
-        self.desired_deployed_height = desired_deployed_height
-        self.desired_stowed_height = desired_stowed_height
-
-        self.collected_solutions = {}
-
     @property
     def ikea_error(self):
         '''The total difference between actual positions and intended positions for fixed, rigid components.'''
         return sum([component.ikea_error for component in [A_link, B_link, C_link]])
-
-    @property
-    def murphy_error(self):
-        '''murphy_error is the sum of all differences between current design and optimal design. Used to optimize fixed, positions and rigid components'''
-
-        # When deployed, the bed should be at desired height with the head of the bed close to the wall
-
-        # When stowed, the bed should be flat up against the wall with the foot of the bed below the window
-
-        # No part of the assembly should ever extend outside of the house
-
-        # when stowed and deployed, no part of the links should extend above/forward of the bedframe
-
-        # the floor opening should be minimized
-
-        # the center of gravity of the bedframe should be as low as possible
 
     def plot(self):
         ax = plt.figure().add_subplot(111)
@@ -67,7 +96,6 @@ class Murphy():
             if (i%5000==0) and plot_here:
                 self.plot()
         if plot_here: self.plot()
-        self.collected_solutions[self.bedframe.angle] = deepcopy(self)
 
 class Link():
     def __init__(self, x, y, length, width, angle, color, attachment = None):
@@ -277,8 +305,6 @@ if __name__ == '__main__':
     A_link = Link(0,5,12,4,0, 'r', (10,2))
     B_link = Link(2, -10, 30, 4, 0, 'g')
     C_link = Link(B_link.distal[0], B_link.distal[1], 20, 3, 0, 'b', (40,6))
-    assembly = Murphy(bedframe, A_link, B_link, C_link, 18, 44)
+    assembly = Murphy(bedframe, A_link, B_link, C_link)
 
-    for angle in range(0,91,30):
-        assembly.bedframe.angle = angle
-        assembly.assemble(plot_here=False)
+    murphy_bed = MurphyBed(assembly, 14, 48)
