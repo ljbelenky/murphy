@@ -56,15 +56,15 @@ class MurphyBed():
         # when deployed, no part of the links should extend above/forward of the bedframe
         def deployed_encroachment(link):
             if (link.extents['right'] > deployed.bedframe.x) and (link.extents['top'] > (deployed.bedframe.y+deployed.bedframe.t)):
-            return link.extents['top'] - deployed.bedframe.y+deployed.bedframe.t
-        else: return 0
+                return link.extents['top'] - deployed.bedframe.y+deployed.bedframe.t
+            else: return 0
 
         errors.append(max([deployed_encroachment(link) for link in [deployed.A, deployed.B, deployed.C]])**2)
         
         # the floor opening should not be much larger than the thickness of the beframe
         floor_opening = 0
         for murphy in self.collected_solutions.values():
-            for component in [murphy.bedframe, murphy.A, murhpy.B, murphy.C]:
+            for component in [murphy.bedframe, murphy.A, murphy.B, murphy.C]:
                 floor_opening = max(floor_opening, component.floor_opening)
 
         if floor_opening > stowed.bedframe.x:
@@ -119,6 +119,7 @@ class Murphy():
                 exec('self.{variable} += {adjustment}'.format(variable = variable, adjustment = adjustment))
             if (i%5000==0) and plot_here:
                 self.plot()
+            if self.ikea_error < 0.01: break
         if plot_here: self.plot()
 
 class Link():
@@ -337,3 +338,4 @@ if __name__ == '__main__':
     # The complete solution of a bed from deployed to stowed
     murphy_bed = MurphyBed(assembly, 14, 48)
     murphy_bed.solve_over_full_range(10)
+
