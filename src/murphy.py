@@ -7,7 +7,7 @@ class MurphyBed():
     '''The MurphyBed Class represents a collection of Murphy objects, all of the same design, solved over the full range of angles from deployed (0) to stowed (90)'''
     def __init__(self, bed, desired_deployed_height, desired_stowed_height):
         self.bed = bed
-        self.desired_deployed_height, desired_stowed_height = desired_deployed_height, desired_stowed_height
+        self.desired_deployed_height, self.desired_stowed_height = desired_deployed_height, desired_stowed_height
         self.collected_solutions = {}
 
     def solve_over_full_range(self, steps):
@@ -21,37 +21,59 @@ class MurphyBed():
     def murphy_error(self):
         '''murphy_error is the sum of all differences between current design and optimal design. Used to optimize fixed, positions and rigid components. 
         Calculation of Murphy Error requires collected_solutions for all angles between 0 and 90'''
+        deployed = self.collected_solutions[0]
+        stowed = self.collected_solutions[90]
 
         errors = []
         # When deployed, the bed should be at desired height
-        if self.bedframe.angle == 0:
-            errors.append(((self.bedframe.y + self.bedframe.t)-self.desired_deployed_height)**2)
-        else: errors.append(0)
-
+        errors.append((deployed.bedframe.y+deployed.bedframe.t-self.desired_deployed_height)**2)
+        
         # When deployed, the head of the bed should be close to the wall
-        if self.bedframe.angle == 0:
-            errors.append(self.bedframe.x**2)
-        else: errors.append(0)
-
+        errors.append(deployed.bedframe.x**2)
+        
         # When stowed, the bed should be flat up against the wall
-        if self.bedframe.angle == 90:
-            errors.append()
-        else: errors.append(0)
+        errors.append((stowed.bedframe.x-stowed.bedframe.t)**2)
 
         # When stowed, the foot of the bed should be at desired height below the window
-        if self.bedframe.angle == 90:
-            errors.append()
-        else:
-            errors.append(0)
+        errors.append((stowed.bedframe.y+stowed.bedframe.l - self.desired_stowed_height)**2)
 
         # No part of the assembly should ever extend outside of the house
+        left_most = 0
+        for murphy in self.collected_solutions.values():
+            for component in [murphy.bedframe, murphy.A, murphy.B, murphy.C]:
+                left_most = min(left_most, component.extents['left'])
 
-        # when stowed, no part of the links should extend above/forward of the bedframe
+        errors.append(left_most**2)
 
+        # when stowed, no part of the links should extend forward of the bedframe if it is above the floor
+        def stowed_encroachment(link):
+            if (link.extents['top'] > 0) and (link.extents['right'] > stowed.bedframe.x):
+                return link.extents['right']-stowed.bedframe.x
+            else: return 0
+
+        errors.append(max([stowed_encroachment(link) for link in [stowed.A, stowed.B, stowed.C]])**2)
+        
         # when deployed, no part of the links should extend above/forward of the bedframe
+        def deployed_encroachment(link):
+            if (link.extents['right'] > deployed.bedframe.x) and (link.extents['top'] > (deployed.bedframe.y+deployed.bedframe.t)):
+            return link.extents['top'] - deployed.bedframe.y+deployed.bedframe.t
+        else: return 0
 
-        # the floor opening should be minimized
+        errors.append(max([deployed_encroachment(link) for link in [deployed.A, deployed.B, deployed.C]])**2)
+        
+        # the floor opening should not be much larger than the thickness of the beframe
+        floor_opening = 0
+        for murphy in self.collected_solutions.values():
+            for component in [murphy.bedframe, murphy.A, murhpy.B, murphy.C]:
+                floor_opening = max(floor_opening, component.floor_opening)
 
+        if floor_opening > stowed.bedframe.x:
+            error = floor_opening**2
+        else:
+            error = 0
+
+        errors.append(error)
+        
         return sum(errors), errors
 
 
