@@ -52,6 +52,8 @@ class MurphyBed():
 
         # the floor opening should be minimized
 
+        return sum(errors), errors
+
 
 class Murphy():
     '''The Murphy Object represents a bed assembly at a particular angle'''
@@ -301,10 +303,15 @@ class Bedframe():
 
 if __name__ == '__main__':
 
+    # The basic components of a bed
     bedframe = Bedframe(10,4,10, 72, 24, 10)
     A_link = Link(0,5,12,4,0, 'r', (10,2))
     B_link = Link(2, -10, 30, 4, 0, 'g')
     C_link = Link(B_link.distal[0], B_link.distal[1], 20, 3, 0, 'b', (40,6))
+    
+    # A bed assembled at a single position
     assembly = Murphy(bedframe, A_link, B_link, C_link)
 
+    # The complete solution of a bed from deployed to stowed
     murphy_bed = MurphyBed(assembly, 14, 48)
+    murphy_bed.solve_over_full_range(10)
