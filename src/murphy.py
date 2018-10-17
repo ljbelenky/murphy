@@ -82,7 +82,7 @@ class MurphyBed():
 
 if __name__ == '__main__':
     angle_steps = 5
-    learning_rate = -.1
+    learning_rate = -.001
     # The basic components of a bed
     bedframe = Bedframe(10,4,10, 72, 24, 10)
     A_link = Link(0,5,12,4,0, 'r', bedframe, (10,2))
@@ -99,23 +99,26 @@ if __name__ == '__main__':
 
     initial_design = deepcopy(murphy_bed)
 
+    murphy_error_history = []
 
-
-    for i in range(10):
+    for i in range(100):
         murphy_bed.bed = murphy_bed.collected_solutions[0]
-        for variable in ['A.x','A.y', 'A.length']:
+        for variable in ['A.x','A.y', "A.attachment['x']", "A.attachment['y']", "C.attachment['x']", 
+        "C.attachment['y']", 'A.length', 'B.x','B.y','B.length', 'C.length']:
             print(variable)
             errors = []
-            for step in ['+=1', '-=2']:
+            for step in ['+=0.5', '-=1']:
                 exec('murphy_bed.bed.{variable}{step}'.format(variable = variable, step=step))
                 murphy_bed.solve_over_full_range(angle_steps)
                 print('Murphy error: ', murphy_bed.murphy_error)
                 errors.append(murphy_bed.murphy_error)
             partial_derivative = errors[0]-errors[1]
-            adjustment = partial_derivative*learning_rate + 1
+            adjustment = partial_derivative*learning_rate + 0.5
             exec('murphy_bed.bed.{variable}+={adjustment}'.format(variable = variable, adjustment = adjustment))
-            print(variable, adjustment)
+            print(variable, adjustment-.5)
             murphy_bed.solve_over_full_range(angle_steps)
             print('Adjusted Murphy Error: ', murphy_bed.murphy_error)
+            murphy_error_history.append(murphy_bed.murphy_error)
 
-
+plt.plot(murphy_error_history)
+plt.show()

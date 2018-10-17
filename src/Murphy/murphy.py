@@ -40,6 +40,6 @@ class Murphy():
                 exec('self.{variable} += {adjustment}'.format(variable = variable, adjustment = adjustment))
             if (i%5000==0) and plot_here:
                 self.plot()
-            if self.ikea_error < 0.0001: break
-        print('Assembled in {} steps with Ikea error {}'.format(i,self.ikea_error))
+            if self.ikea_error < 0.125: break
+        print('Assembled in {} steps with Ikea error {}'.format(i,round(self.ikea_error,3)))
         if plot_here: self.plot()
