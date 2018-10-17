@@ -74,12 +74,12 @@ class MurphyBed():
 
         errors.append(error)
         
-        return sum(errors), errors
+        return sum(errors) #, errors
 
 
 class Murphy():
     '''The Murphy Object represents a bed assembly at a particular angle'''
-    learning_rate = -.1
+    learning_rate = -.01
     threshold = .001
     def __init__(self, bedframe, A_link, B_link, C_link):
         ''' Basic structure'''
@@ -119,7 +119,8 @@ class Murphy():
                 exec('self.{variable} += {adjustment}'.format(variable = variable, adjustment = adjustment))
             if (i%5000==0) and plot_here:
                 self.plot()
-            if self.ikea_error < 0.01: break
+            if self.ikea_error < 0.0001: break
+        print('Assembled in {} steps with Ikea error {}'.format(i,self.ikea_error))
         if plot_here: self.plot()
 
 class Link():
@@ -202,12 +203,11 @@ class Link():
 
     @property
     def ikea_error(self):
-        '''Ikea error is the assembly error, or the distance from the distal point of a link to its intended attachment point,
-        plus the CoG of each component should be as low as possible.'''
+        '''Ikea error is the assembly error, or the distance from the distal point of a link to its intended attachment point'''
         if self.attachment:
             fit_error = ((self.distal[0]-self.room_attachment['x'])**2+(self.distal[1]-self.room_attachment['y'])**2)
         else: fit_error = 0 
-        return fit_error + self.CoG[1]*.1
+        return fit_error
 
     def plot(self, ax = None):
         plot_here = False
@@ -325,7 +325,8 @@ class Bedframe():
         return ax
 
 if __name__ == '__main__':
-
+    angle_steps = 5
+    learning_rate = -.1
     # The basic components of a bed
     bedframe = Bedframe(10,4,10, 72, 24, 10)
     A_link = Link(0,5,12,4,0, 'r', (10,2))
@@ -337,5 +338,28 @@ if __name__ == '__main__':
 
     # The complete solution of a bed from deployed to stowed
     murphy_bed = MurphyBed(assembly, 14, 48)
-    murphy_bed.solve_over_full_range(10)
+    murphy_bed.solve_over_full_range(angle_steps)
+    print('Initial Murphy Error: ', murphy_bed.murphy_error)
+
+    initial_design = deepcopy(murphy_bed)
+
+
+
+    for i in range(10):
+        murphy_bed.bed = murphy_bed.collected_solutions[0]
+        for variable in ['A.x','A.y', 'A.length']:
+            print(variable)
+            errors = []
+            for step in ['+=1', '-=2']:
+                exec('murphy_bed.bed.{variable}{step}'.format(variable = variable, step=step))
+                murphy_bed.solve_over_full_range(angle_steps)
+                print('Murphy error: ', murphy_bed.murphy_error)
+                errors.append(murphy_bed.murphy_error)
+            partial_derivative = errors[0]-errors[1]
+            adjustment = partial_derivative*learning_rate + 1
+            exec('murphy_bed.bed.{variable}+={adjustment}'.format(variable = variable, adjustment = adjustment))
+            print(variable, adjustment)
+            murphy_bed.solve_over_full_range(angle_steps)
+            print('Adjusted Murphy Error: ', murphy_bed.murphy_error)
+
 
