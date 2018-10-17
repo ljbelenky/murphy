@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
     murphy_error_history = []
 
-    for i in range(100):
+    for i in range(200):
         murphy_bed.bed = murphy_bed.collected_solutions[0]
         for variable in ['A.x','A.y', "A.attachment['x']", "A.attachment['y']", "C.attachment['x']", 
         "C.attachment['y']", 'A.length', 'B.x','B.y','B.length', 'C.length']:

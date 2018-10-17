@@ -1,6 +1,6 @@
 class Murphy():
     '''The Murphy Object represents a bed assembly at a particular angle'''
-    learning_rate = -.01
+    learning_rate = -.1
     threshold = .001
     def __init__(self, bedframe, A_link, B_link, C_link):
         ''' Basic structure'''
