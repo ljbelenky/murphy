@@ -5,6 +5,7 @@ from copy import deepcopy
 from Murphy.link import Link
 from Murphy.bedframe import Bedframe
 from Murphy.murphy import Murphy
+import sys
 
 class MurphyBed():
     '''The MurphyBed Class represents a collection of Murphy objects, all of the same design, solved over the full range of angles from deployed (0) to stowed (90)'''
@@ -79,13 +80,27 @@ class MurphyBed():
         
         return sum(errors) #, errors
 
+def plot_all(murphy_bed):
+    ax = plt.figure().add_subplot(111)
+    for i in murphy_bed.collected_solutions.values():
+        for j in [i.bedframe, i.A, i.B, i.C]:
+            j.plot(ax)
+    plt.show()
+
+def cycles(n=10):
+    if len(sys.argv) > 1:
+        try:
+            return int(sys.argv[1])
+        except:
+            pass    
+    return n
 
 if __name__ == '__main__':
     angle_steps = 5
     learning_rate = -.001
     # The basic components of a bed
     bedframe = Bedframe(10,4,10, 72, 24, 10)
-    A_link = Link(0,5,12,4,0, 'r', bedframe, (10,2))
+    A_link = Link(0,5,12,4,0, 'r', bedframe, (2,20))
     B_link = Link(2, -10, 30, 4, 0, 'g', bedframe)
     C_link = Link(B_link.distal[0], B_link.distal[1], 20, 3, 0, 'b', bedframe, (40,6))
     
@@ -101,7 +116,7 @@ if __name__ == '__main__':
 
     murphy_error_history = []
 
-    for i in range(200):
+    for i in range(cycles()):
         murphy_bed.bed = murphy_bed.collected_solutions[0]
         for variable in ['A.x','A.y', "A.attachment['x']", "A.attachment['y']", "C.attachment['x']", 
         "C.attachment['y']", 'A.length', 'B.x','B.y','B.length', 'C.length']:
@@ -122,3 +137,5 @@ if __name__ == '__main__':
 
 plt.plot(murphy_error_history)
 plt.show()
+
+plot_all(murphy_bed)

@@ -1,5 +1,7 @@
 
 from math import sin, cos, radians, atan
+import numpy as np
+import matplotlib.pyplot as plt
 
 class Link():
     def __init__(self, x, y, length, width, angle, color, bedframe, attachment = None):

@@ -1,4 +1,5 @@
 from math import radians, sin, cos
+import matplotlib.pyplot as plt
 
 class Bedframe():
     def __init__(self, x,y,thickness, length, height_of_headboard, depth_of_headboard, angle = 0):
