@@ -78,7 +78,7 @@ class MurphyBed():
 
         errors.append(error)
         
-        return sum(errors) #, errors
+        return sum(errors), errors
 
 def plot_all(murphy_bed):
     ax = plt.figure().add_subplot(111)
@@ -110,11 +110,12 @@ if __name__ == '__main__':
     # The complete solution of a bed from deployed to stowed
     murphy_bed = MurphyBed(assembly, 14, 48)
     murphy_bed.solve_over_full_range(angle_steps)
-    print('Initial Murphy Error: ', murphy_bed.murphy_error)
+    print('Initial Murphy Error: ', murphy_bed.murphy_error[0])
 
     initial_design = deepcopy(murphy_bed)
 
     murphy_error_history = []
+    murphy_errors_history = []
 
     for i in range(cycles()):
         murphy_bed.bed = murphy_bed.collected_solutions[0]
@@ -125,15 +126,16 @@ if __name__ == '__main__':
             for step in ['+=0.5', '-=1']:
                 exec('murphy_bed.bed.{variable}{step}'.format(variable = variable, step=step))
                 murphy_bed.solve_over_full_range(angle_steps)
-                print('Murphy error: ', murphy_bed.murphy_error)
-                errors.append(murphy_bed.murphy_error)
+                print('Murphy error: ', murphy_bed.murphy_error[0])
+                errors.append(murphy_bed.murphy_error[0])
             partial_derivative = errors[0]-errors[1]
             adjustment = partial_derivative*learning_rate + 0.5
             exec('murphy_bed.bed.{variable}+={adjustment}'.format(variable = variable, adjustment = adjustment))
             print(variable, adjustment-.5)
             murphy_bed.solve_over_full_range(angle_steps)
-            print('Adjusted Murphy Error: ', murphy_bed.murphy_error)
-            murphy_error_history.append(murphy_bed.murphy_error)
+            print('Adjusted Murphy Error: ', murphy_bed.murphy_error[0])
+            murphy_error_history.append(murphy_bed.murphy_error[0])
+            murphy_errors_history.append(murphy_bed.murphy_error[1])
 
 plt.plot(murphy_error_history)
 plt.show()
