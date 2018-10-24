@@ -115,7 +115,7 @@ class Link():
 
         # Attachment Point
         if self.attachment:
-            ax.scatter(**self.room_attachment, marker = 'x', c = self.color)
+            ax.scatter(self.room_attachment['x'], self.room_attachment['y'], marker = 'x', c = self.color)
             ax.plot([self.distal[0], self.room_attachment['x']], [self.distal[1], self.room_attachment['y']], c = self.color, linestyle = 'dashed')
 
         if plot_here: plt.show()
