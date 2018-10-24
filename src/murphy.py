@@ -115,7 +115,7 @@ if __name__ == '__main__':
     initial_design = deepcopy(murphy_bed)
 
     murphy_error_history = []
-    murphy_errors_history = []
+    murphy_errors_
 
     for i in range(cycles()):
         murphy_bed.bed = murphy_bed.collected_solutions[0]
