@@ -145,6 +145,10 @@ if __name__ == '__main__':
         murphy_error_history.append(murphy_bed.murphy_error[0])
         murphy_errors_history.append(murphy_bed.murphy_error[1])
 
+        if i%10==0:
+            with open('murphy.pkl', 'wb') as f:
+                pickle.dump(murphy_bed, f)
+
 plt.plot(murphy_error_history)
 plt.show()
 
@@ -153,6 +157,5 @@ plt.show()
 
 plot_all(murphy_bed)
 
-with open('murphy.pkl', 'wb') as f:
-    pickle.dump(murphy_bed, f)
+
 
