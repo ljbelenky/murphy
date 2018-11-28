@@ -6,6 +6,7 @@ from Murphy.link import Link
 from Murphy.bedframe import Bedframe
 from Murphy.murphy import Murphy
 import sys
+import pickle
 
 class MurphyBed():
     '''The MurphyBed Class represents a collection of Murphy objects, all of the same design, solved over the full range of angles from deployed (0) to stowed (90)'''
@@ -16,7 +17,7 @@ class MurphyBed():
 
     def solve_over_full_range(self, steps):
         for angle in np.linspace(0,90, steps):
-            print('Solving at angle ', angle)
+            # print('Solving at angle ', angle)
             self.bed.bedframe.angle = angle
             self.bed.assemble()
             self.collected_solutions[angle] = deepcopy(self.bed)
@@ -27,6 +28,8 @@ class MurphyBed():
         Calculation of Murphy Error requires collected_solutions for all angles between 0 and 90'''
         deployed = self.collected_solutions[0]
         stowed = self.collected_solutions[90]
+
+        balance = np.array([525, 72, 262, 307, 4, 1, 1355, 6483])
 
         errors = []
         # When deployed, the bed should be at desired height
@@ -75,10 +78,10 @@ class MurphyBed():
             error = floor_opening**2
         else:
             error = 0
-
         errors.append(error)
+        errors = (np.array(errors)/balance)
         
-        return sum(errors), errors
+        return errors.sum(), errors
 
 def plot_all(murphy_bed):
     ax = plt.figure().add_subplot(111)
@@ -97,7 +100,7 @@ def cycles(n=10):
 
 if __name__ == '__main__':
     angle_steps = 5
-    learning_rate = -.001
+    learning_rate = -4
     # The basic components of a bed
     bedframe = Bedframe(10,4,10, 72, 24, 10)
     A_link = Link(0,5,12,4,0, 'r', bedframe, (2,20))
@@ -108,7 +111,9 @@ if __name__ == '__main__':
     assembly = Murphy(bedframe, A_link, B_link, C_link)
 
     # The complete solution of a bed from deployed to stowed
-    murphy_bed = MurphyBed(assembly, 14, 48)
+    # murphy_bed = MurphyBed(assembly, 14, 40)
+    with open('murphy.pkl','rb') as f:
+        murphy_bed = pickle.load(f)
     murphy_bed.solve_over_full_range(angle_steps)
     print('Initial Murphy Error: ', murphy_bed.murphy_error[0])
 
@@ -118,26 +123,36 @@ if __name__ == '__main__':
     murphy_errors_history = []
 
     for i in range(cycles()):
+        print('#'*20+'\n'+str(i)+'\n'+'#'*20)
         murphy_bed.bed = murphy_bed.collected_solutions[0]
-        for variable in ['A.x','A.y', "A.attachment['x']", "A.attachment['y']", "C.attachment['x']", 
-        "C.attachment['y']", 'A.length', 'B.x','B.y','B.length', 'C.length']:
-            print(variable)
-            errors = []
-            for step in ['+=0.5', '-=1']:
-                exec('murphy_bed.bed.{variable}{step}'.format(variable = variable, step=step))
-                murphy_bed.solve_over_full_range(angle_steps)
-                print('Murphy error: ', murphy_bed.murphy_error[0])
-                errors.append(murphy_bed.murphy_error[0])
-            partial_derivative = errors[0]-errors[1]
-            adjustment = partial_derivative*learning_rate + 0.5
-            exec('murphy_bed.bed.{variable}+={adjustment}'.format(variable = variable, adjustment = adjustment))
-            print(variable, adjustment-.5)
+        variable = np.random.choice(np.array(['A.x','A.y', "A.attachment['x']", "A.attachment['y']", "C.attachment['x']", 
+        "C.attachment['y']", 'A.length', 'B.x','B.y','B.length', 'C.length']))
+        # for variable in ['A.x','A.y', "A.attachment['x']", "A.attachment['y']", "C.attachment['x']", 
+        # "C.attachment['y']", 'A.length', 'B.x','B.y','B.length', 'C.length']:
+        print(variable)
+        errors = []
+        for step in ['+=0.5', '-=1']:
+            exec('murphy_bed.bed.{variable}{step}'.format(variable = variable, step=step))
             murphy_bed.solve_over_full_range(angle_steps)
-            print('Adjusted Murphy Error: ', murphy_bed.murphy_error[0])
-            murphy_error_history.append(murphy_bed.murphy_error[0])
-            murphy_errors_history.append(murphy_bed.murphy_error[1])
+            # print('Murphy error: ', murphy_bed.murphy_error[0])
+            errors.append(murphy_bed.murphy_error[0])
+        partial_derivative = errors[0]-errors[1]
+        adjustment = partial_derivative*learning_rate + 0.5
+        exec('murphy_bed.bed.{variable}+={adjustment}'.format(variable = variable, adjustment = adjustment))
+        # print(variable, adjustment-.5)
+        murphy_bed.solve_over_full_range(angle_steps)
+        print('Adjusted Murphy Error: ', murphy_bed.murphy_error[0])
+        murphy_error_history.append(murphy_bed.murphy_error[0])
+        murphy_errors_history.append(murphy_bed.murphy_error[1])
 
 plt.plot(murphy_error_history)
 plt.show()
 
+plt.plot(murphy_errors_history)
+plt.show()
+
 plot_all(murphy_bed)
+
+with open('murphy.pkl', 'wb') as f:
+    pickle.dump(murphy_bed, f)
+
