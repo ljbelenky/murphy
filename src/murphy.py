@@ -55,18 +55,18 @@ class MurphyBed():
         # when stowed, no part of the links should extend forward of the bedframe if it is above the floor
         def stowed_encroachment(link):
             if (link.extents['top'] > 0) and (link.extents['right'] > stowed.bedframe.x):
-                return link.extents['right']-stowed.bedframe.x
+                return (link.extents['right']-stowed.bedframe.x)**2
             else: return 0
 
-        errors.append(max([stowed_encroachment(link) for link in [stowed.A, stowed.B, stowed.C]])**2)
+        errors.append(max([stowed_encroachment(link) for link in [stowed.A, stowed.B, stowed.C]]))
         
         # when deployed, no part of the links should extend above/forward of the bedframe
         def deployed_encroachment(link):
             if (link.extents['right'] > deployed.bedframe.x) and (link.extents['top'] > (deployed.bedframe.y+deployed.bedframe.t)):
-                return link.extents['top'] - deployed.bedframe.y+deployed.bedframe.t
+                return (link.extents['top'] - deployed.bedframe.y+deployed.bedframe.t)**2
             else: return 0
 
-        errors.append(max([deployed_encroachment(link) for link in [deployed.A, deployed.B, deployed.C]])**2)
+        errors.append(max([deployed_encroachment(link) for link in [deployed.A, deployed.B, deployed.C]]))
         
         # the floor opening should not be much larger than the thickness of the beframe
         floor_opening = 0
@@ -100,7 +100,7 @@ def cycles(n=10):
 
 if __name__ == '__main__':
     angle_steps = 5
-    learning_rate = -4
+    learning_rate = -1
     # The basic components of a bed
     bedframe = Bedframe(10,4,10, 72, 24, 10)
     A_link = Link(0,5,12,4,0, 'r', bedframe, (2,20))
@@ -127,8 +127,6 @@ if __name__ == '__main__':
         murphy_bed.bed = murphy_bed.collected_solutions[0]
         variable = np.random.choice(np.array(['A.x','A.y', "A.attachment['x']", "A.attachment['y']", "C.attachment['x']", 
         "C.attachment['y']", 'A.length', 'B.x','B.y','B.length', 'C.length']))
-        # for variable in ['A.x','A.y', "A.attachment['x']", "A.attachment['y']", "C.attachment['x']", 
-        # "C.attachment['y']", 'A.length', 'B.x','B.y','B.length', 'C.length']:
         print(variable)
         errors = []
         for step in ['+=0.5', '-=1']:
@@ -145,7 +143,7 @@ if __name__ == '__main__':
         murphy_error_history.append(murphy_bed.murphy_error[0])
         murphy_errors_history.append(murphy_bed.murphy_error[1])
 
-        if i%10==0:
+        if i%100==0:
             with open('murphy.pkl', 'wb') as f:
                 pickle.dump(murphy_bed, f)
 
