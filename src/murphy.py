@@ -27,10 +27,10 @@ class MurphyBed():
         Calculation of Murphy Error requires collected_solutions for all angles between 0 and 90'''
         deployed = self.collected_solutions[0]
         stowed = self.collected_solutions[90]
-
-        balance = np.array([400, 72, 20, 30, 100, 10, 1000, 5000, 10])
-
         errors = []
+
+        balance = np.array([5, 7, 2, 1, 1, 1, 50, 50, 1, 1,1])
+        
         # When deployed, the bed should be at desired height
         errors.append((deployed.bedframe.y+deployed.bedframe.t-self.desired_deployed_height)**2)
         
@@ -38,7 +38,7 @@ class MurphyBed():
         errors.append(deployed.bedframe.x**2)
         
         # When stowed, the bed should be flat up against the wall
-        errors.append((stowed.bedframe.x-stowed.bedframe.t)**2)
+        errors.append((stowed.bedframe.x-stowed.bedframe.h_headboard)**2)
 
         # When stowed, the foot of the bed should be at desired height below the window
         errors.append((stowed.bedframe.y+stowed.bedframe.l - self.desired_stowed_height)**2)
@@ -82,6 +82,17 @@ class MurphyBed():
         #the bed should be buildable
         errors.append(max([i.ikea_error for i in self.collected_solutions.values()])**2)
 
+        # Link A,B Attachment point must be on the bedframe
+        for i in [self.bed.A, self.bed.B]:
+            x = i.attachment['x']
+            y = i.attachment['y']
+            if (0 < x < self.bed.bedframe.l) and (0 < y < self.bed.bedframe.t):
+                errors.append(0)
+            elif (0 < x < self.bed.bedframe.depth_of_headboard) and (0 < y < self.bed.bedframe.h_headboard):
+                errors.append(0)
+            else:
+                X,Y = self.bed.bedframe.CoG
+                errors.append((X-x)**2 + (Y-y)**2)
 
         errors = (np.array(errors)/balance)
         
@@ -102,25 +113,32 @@ def cycles(n=10):
             pass    
     return n
 
+def plot():
+    plt.plot(adjustments)
+    plt.show()
+    plt.plot(murphy_errors_history)
+    plt.show()
+    plot_all(murphy_bed)
+
 if __name__ == '__main__':
     angle_steps = 5
-    learning_rate = -.01
+    learning_rate = -.08
     # The basic components of a bed
-    bedframe = Bedframe(10,4,10, 72, 24, 10)
-    A_link = Link(x=-25,y=2,length=20,width=4,angle=80, color = 'r', bedframe = bedframe, attachment = (4,20))
-    B_link = Link(10, -10, 22, 4, 70, 'g', bedframe, (40,6))
+    bedframe = Bedframe(10,4,10, 72, 12, 8)
+    A_link = Link(x=0,y=0,length=10,width=4,angle=80, color = 'r', bedframe = bedframe, attachment = (5,2))
+    B_link = Link(x=20, y = -1, length = 10, width = 4, angle = 110, color ='g', bedframe = bedframe, attachment = (18,2))
 
     # A bed assembled at a single position
     assembly = Murphy(bedframe, A_link, B_link)
 
     # The complete solution of a bed from deployed to stowed
-    # murphy_bed = MurphyBed(assembly, 15, 40)
-    with open('murphy.pkl','rb') as f:
-        murphy_bed = pickle.load(f)
+    murphy_bed = MurphyBed(assembly, 15, 40)
+    # with open('murphy.pkl','rb') as f:
+    #     murphy_bed = pickle.load(f)
     murphy_bed.solve_over_full_range(angle_steps)
     print('Initial Murphy Error: ', murphy_bed.murphy_error[0])
 
-    initial_design = deepcopy(murphy_bed)
+    # initial_design = deepcopy(murphy_bed)
 
     murphy_error_history = []
     murphy_errors_history = []
@@ -135,7 +153,6 @@ if __name__ == '__main__':
         for step in ['+=0.5', '-=1']:
             exec('murphy_bed.bed.{variable}{step}'.format(variable = variable, step=step))
             murphy_bed.solve_over_full_range(angle_steps)
-            # print('Murphy error: ', murphy_bed.murphy_error[0])
             errors.append(murphy_bed.murphy_error[0])
         partial_derivative = errors[0]-errors[1]
         adjustment = partial_derivative*learning_rate + 0.5
@@ -153,13 +170,4 @@ if __name__ == '__main__':
 with open('murphy.pkl', 'wb') as f:
                 pickle.dump(murphy_bed, f)
 
-plt.plot(adjustments)
-plt.show()
-
-plt.plot(murphy_errors_history)
-plt.show()
-
-plot_all(murphy_bed)
-
-
-
+plot()

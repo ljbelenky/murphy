@@ -11,9 +11,7 @@ class Link():
         self.color = color
         self.bedframe = bedframe
         # Attachment point relative to the bedframe
-        if attachment:
-            self.attachment = {'x':attachment[0],'y':attachment[1]}
-        else: self.attachment = None
+        self.attachment = {'x':attachment[0],'y':attachment[1]}
 
     @property
     def room_attachment(self):
