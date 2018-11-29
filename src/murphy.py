@@ -17,7 +17,6 @@ class MurphyBed():
 
     def solve_over_full_range(self, steps):
         for angle in np.linspace(0,90, steps):
-            # print('Solving at angle ', angle)
             self.bed.bedframe.angle = angle
             self.bed.assemble()
             self.collected_solutions[angle] = deepcopy(self.bed)
@@ -29,7 +28,7 @@ class MurphyBed():
         deployed = self.collected_solutions[0]
         stowed = self.collected_solutions[90]
 
-        balance = np.array([525, 72, 262, 307, 4, 1, 1355, 6483])
+        balance = np.array([400, 72, 20, 30, 100, 10, 1000, 5000, 10])
 
         errors = []
         # When deployed, the bed should be at desired height
@@ -47,7 +46,7 @@ class MurphyBed():
         # No part of the assembly should ever extend outside of the house
         left_most = 0
         for murphy in self.collected_solutions.values():
-            for component in [murphy.bedframe, murphy.A, murphy.B, murphy.C]:
+            for component in [murphy.bedframe, murphy.A, murphy.B]:
                 left_most = min(left_most, component.extents['left'])
 
         errors.append(left_most**2)
@@ -58,7 +57,7 @@ class MurphyBed():
                 return (link.extents['right']-stowed.bedframe.x)**2
             else: return 0
 
-        errors.append(max([stowed_encroachment(link) for link in [stowed.A, stowed.B, stowed.C]]))
+        errors.append(max([stowed_encroachment(link) for link in [stowed.A, stowed.B]]))
         
         # when deployed, no part of the links should extend above/forward of the bedframe
         def deployed_encroachment(link):
@@ -66,12 +65,12 @@ class MurphyBed():
                 return (link.extents['top'] - deployed.bedframe.y+deployed.bedframe.t)**2
             else: return 0
 
-        errors.append(max([deployed_encroachment(link) for link in [deployed.A, deployed.B, deployed.C]]))
+        errors.append(max([deployed_encroachment(link) for link in [deployed.A, deployed.B]]))
         
         # the floor opening should not be much larger than the thickness of the beframe
         floor_opening = 0
         for murphy in self.collected_solutions.values():
-            for component in [murphy.bedframe, murphy.A, murphy.B, murphy.C]:
+            for component in [murphy.bedframe, murphy.A, murphy.B]:
                 floor_opening = max(floor_opening, component.floor_opening)
 
         if floor_opening > stowed.bedframe.x:
@@ -79,6 +78,11 @@ class MurphyBed():
         else:
             error = 0
         errors.append(error)
+
+        #the bed should be buildable
+        errors.append(max([i.ikea_error for i in self.collected_solutions.values()])**2)
+
+
         errors = (np.array(errors)/balance)
         
         return errors.sum(), errors
@@ -86,7 +90,7 @@ class MurphyBed():
 def plot_all(murphy_bed):
     ax = plt.figure().add_subplot(111)
     for i in murphy_bed.collected_solutions.values():
-        for j in [i.bedframe, i.A, i.B, i.C]:
+        for j in [i.bedframe, i.A, i.B]:
             j.plot(ax)
     plt.show()
 
@@ -100,18 +104,17 @@ def cycles(n=10):
 
 if __name__ == '__main__':
     angle_steps = 5
-    learning_rate = -1
+    learning_rate = -.01
     # The basic components of a bed
     bedframe = Bedframe(10,4,10, 72, 24, 10)
-    A_link = Link(0,5,12,4,0, 'r', bedframe, (2,20))
-    B_link = Link(2, -10, 30, 4, 0, 'g', bedframe)
-    C_link = Link(B_link.distal[0], B_link.distal[1], 20, 3, 0, 'b', bedframe, (40,6))
-    
+    A_link = Link(x=-25,y=2,length=20,width=4,angle=80, color = 'r', bedframe = bedframe, attachment = (4,20))
+    B_link = Link(10, -10, 22, 4, 70, 'g', bedframe, (40,6))
+
     # A bed assembled at a single position
-    assembly = Murphy(bedframe, A_link, B_link, C_link)
+    assembly = Murphy(bedframe, A_link, B_link)
 
     # The complete solution of a bed from deployed to stowed
-    # murphy_bed = MurphyBed(assembly, 14, 40)
+    # murphy_bed = MurphyBed(assembly, 15, 40)
     with open('murphy.pkl','rb') as f:
         murphy_bed = pickle.load(f)
     murphy_bed.solve_over_full_range(angle_steps)
@@ -121,12 +124,12 @@ if __name__ == '__main__':
 
     murphy_error_history = []
     murphy_errors_history = []
+    adjustments = []
 
     for i in range(cycles()):
         print('#'*20+'\n'+str(i)+'\n'+'#'*20)
         murphy_bed.bed = murphy_bed.collected_solutions[0]
-        variable = np.random.choice(np.array(['A.x','A.y', "A.attachment['x']", "A.attachment['y']", "C.attachment['x']", 
-        "C.attachment['y']", 'A.length', 'B.x','B.y','B.length', 'C.length']))
+        variable = np.random.choice(np.array(['A.x','A.y', "A.attachment['x']", "A.attachment['y']", 'A.length', 'B.x','B.y','B.length', "B.attachment['x']", "B.attachment['y']"]))
         print(variable)
         errors = []
         for step in ['+=0.5', '-=1']:
@@ -137,7 +140,7 @@ if __name__ == '__main__':
         partial_derivative = errors[0]-errors[1]
         adjustment = partial_derivative*learning_rate + 0.5
         exec('murphy_bed.bed.{variable}+={adjustment}'.format(variable = variable, adjustment = adjustment))
-        # print(variable, adjustment-.5)
+        adjustments.append(adjustment)
         murphy_bed.solve_over_full_range(angle_steps)
         print('Adjusted Murphy Error: ', murphy_bed.murphy_error[0])
         murphy_error_history.append(murphy_bed.murphy_error[0])
@@ -147,7 +150,10 @@ if __name__ == '__main__':
             with open('murphy.pkl', 'wb') as f:
                 pickle.dump(murphy_bed, f)
 
-plt.plot(murphy_error_history)
+with open('murphy.pkl', 'wb') as f:
+                pickle.dump(murphy_bed, f)
+
+plt.plot(adjustments)
 plt.show()
 
 plt.plot(murphy_errors_history)
