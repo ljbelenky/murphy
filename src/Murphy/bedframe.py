@@ -72,11 +72,7 @@ class Bedframe():
 
     @property
     def head_lower_margin(self):
-        p = self.lower_head
-        p1 = self.lower_foot
-        p2 = self.upper_head
-        return self._offset_point(p, p1, p2, self.margin)
-
+        return self._offset_point(self.lower_head, self.lower_foot, self.upper_head, self.margin)
 
     @property
     def head_upper_margin(self):
