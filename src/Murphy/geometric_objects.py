@@ -79,14 +79,10 @@ class LineSegment:
         return LineSegment(p0, p1)
 
     def __iadd__(self, point):
-        self.p0 += point
-        self.p1 += point
-        return self
+        self.p0, self.p1 = self.p0 + point, self.p1 + point
     
     def __isub__(self, point):
-        self.p0 -= point
-        self.p1 -= point
-        return self
+        self.p0, self.p1 = self.p0 - point, self.p1 - point
 
     def __repr__(self):
         return f'({self.p0})<-->({self.p1})'

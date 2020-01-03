@@ -4,10 +4,11 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression as LR
 
 class Bedframe():
-    def __init__(self, x,y,thickness, length, angle):
+    def __init__(self, x,y, thickness, length, margin, angle):
         '''Design elements'''
         self.t = thickness
         self.l = length
+        self.margin = margin # the distance from the edges to the point where a link can be connected
         
         '''Current Position'''
         self.x, self.y = x,y
@@ -53,37 +54,56 @@ class Bedframe():
     def bottom(self):
         return min(self.lower_foot[1], self.lower_head[1], self.upper_foot[1], self.upper_head[1])
 
+    def _offset_point(self, p, p1, p2, offset):
+        x, y = p
+        x1, y1, = p1
+        x2, y2 = p2
+
+        #vector1
+        d1 = (((x1-x)**2 + (y1-y)**2)**.5)/offset
+        v1 = (x1-x)/d1, (y1-y)/d1
+
+        #vector from (x,y) to (x2,y2)
+        d2 = (((x2-x)**2 + (y2-y)**2)**.5)/offset
+        v2 = (x2-x)/d2, (y2-y)/d2
+
+        return x + v1[0] + v2[0], y + v1[1] + v2[1]
+
+
     @property
-    def floor_opening(self):
-        if (self.bottom >= 0) or (self.top <= 0):
-            return 0
-        
-        #topside
-        if np.sign(self.upper_head[1]) == np.sign(self.upper_foot[1]):
-            topside = 0
-        else:
-            ys = np.array([[self.upper_head[1]], [self.upper_head[1]])
-            xs = np.array([[self.upper_head[0]],[self.lower_head[0]]])
-            topside = LR().fit(ys, xs).predict([[0]])[0]
+    def head_lower_margin(self):
+        p = self.lower_head
+        p1 = self.lower_foot
+        p2 = self.upper_head
+        return self._offset_point(p, p1, p2, self.margin)
 
 
+    @property
+    def head_upper_margin(self):
+        return self._offset_point(self.upper_head, self.lower_head, self.upper_foot, self.margin)
 
-        #foot
+    @property
+    def foot_lower_margin(self):
+        return self._offset_point(self.lower_foot, self.upper_foot, self.lower_head, self.margin)
 
-        #headboard
+    @property
+    def foot_upper_margin(self):
+        return self._offset_point(self.upper_foot, self.upper_head, self.lower_foot, self.margin)
 
-        #bottomside
 
-    
 
     # @property
     # def floor_opening(self):
-    #     x,y = self.x, self.y
-    #     X,Y =self.foot[0]     
-    #     if y > 0 and Y > 0: return 0
-    #     if Y <= 0: return X
-    #     return x - (y * (X-x)/(Y-y))
-
+    #     if (self.bottom >= 0) or (self.top <= 0):
+    #         return 0
+        
+    #     #topside
+    #     if np.sign(self.upper_head[1]) == np.sign(self.upper_foot[1]):
+    #         topside = 0
+    #     else:
+    #         ys = np.array([[self.upper_head[1]], [self.upper_head[1]])
+    #         xs = np.array([[self.upper_head[0]],[self.lower_head[0]]])
+    #         topside = LR().fit(ys, xs).predict([[0]])[0]
 
 
     def plot(self, ax = None):
@@ -102,6 +122,11 @@ class Bedframe():
         bounding_ys = [self.bottom, self.bottom, self.top, self.top, self.bottom]
 
         ax.plot(bounding_xs, bounding_ys, color = 'gray')
+
+        ax.scatter(self.head_lower_margin[0], self.head_lower_margin[1])
+        ax.scatter(self.head_upper_margin[0], self.head_upper_margin[1])
+        ax.scatter(self.foot_upper_margin[0], self.foot_upper_margin[1])
+        ax.scatter(self.foot_lower_margin[0], self.foot_lower_margin[1])
         # # ax.scatter(self.CoG[0], self.CoG[1], marker = 'X', color = color)
         # # ax.scatter(self.floor_opening, 0, marker = 'o', color = color)
         # ax.plot([self.extents['left'], self.extents['right'], self.extents['right'], self.extents['left'], self.extents['left']],
@@ -109,3 +134,10 @@ class Bedframe():
         # alpha = .1, color = color)
         if plot_here: plt.show()
         return ax
+
+
+if __name__ == '__main__':
+    b = Bedframe(0,0, 15, 80, 2, 10)
+    b.plot()
+    plt.show()
+
